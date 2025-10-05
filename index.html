@@ -149,6 +149,44 @@
         </div>
     </div>
     
+    <div id="cell-editor-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Edit Cell</h3>
+                <button id="close-cell-editor-btn" class="modal-close-btn">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-gray-100 p-2 rounded-lg flex items-center space-x-2" id="cell-format-toolbar">
+                    <select id="cell-font-size-input" class="modal-select w-20 px-2 py-1">
+                        <option value="10px">10</option> <option value="12px">12</option>
+                        <option value="14px" selected>14</option> <option value="16px">16</option>
+                        <option value="20px">20</option> <option value="24px">24</option>
+                    </select>
+                    <input type="color" id="cell-text-color-input" class="w-8 h-8 p-0 border-none bg-transparent">
+                    <button data-align="left" class="format-btn">L</button>
+                    <button data-align="center" class="format-btn">C</button>
+                    <button data-align="right" class="format-btn">R</button>
+                </div>
+                <div>
+                    <label for="cell-text-input" class="block text-sm font-medium text-gray-700">Notes</label>
+                    <textarea id="cell-text-input" rows="3" class="modal-input"></textarea>
+                </div>
+                <div>
+                    <label for="cell-image-input" class="block text-sm font-medium text-gray-700">Image URL</label>
+                    <input type="url" id="cell-image-input" placeholder="https://example.com/image.png" class="modal-input">
+                </div>
+                <div>
+                    <label for="cell-color-input" class="block text-sm font-medium text-gray-700">Background Color</label>
+                    <input type="color" id="cell-color-input" class="w-full h-10 p-1 border-gray-300 rounded-lg">
+                </div>
+            </div>
+            <div class="mt-6">
+                <button id="save-cell-btn" class="modal-btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
     <script src="app.js" defer></script>
 </body>
 </html>
