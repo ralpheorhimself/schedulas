@@ -65,18 +65,41 @@
                 </div>
                 <div id="attendees-list" class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-2"></div>
             </div>
+             <!-- Delete Bin -->
+            <div id="delete-bin" class="h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 transition-colors">
+                <span>Drag here to delete</span>
+            </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-auto custom-scrollbar">
-            <div class="p-8" id="main-content">
+        <main class="flex-1 flex flex-col overflow-auto">
+            <header id="main-toolbar" class="bg-gray-100 p-2 border-b border-gray-200 flex items-center space-x-2 sticky top-0 z-10">
+                <button id="merge-cells-btn" class="toolbar-btn">Merge</button>
+                <select id="toolbar-font-size" class="toolbar-select w-20 px-2 py-1">
+                    <option value="10px">10</option> <option value="12px">12</option>
+                    <option value="14px">14</option> <option value="16px">16</option>
+                    <option value="20px">20</option> <option value="24px">24</option>
+                </select>
+                <input type="color" id="toolbar-text-color" class="w-8 h-8 p-0 border-none bg-transparent" title="Text Color">
+                <input type="color" id="toolbar-bg-color" class="w-8 h-8 p-0 border-none bg-transparent" title="Background Color">
+                <button data-align="left" class="toolbar-format-btn" title="Align Left">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path></svg>
+                </button>
+                <button data-align="center" class="toolbar-format-btn" title="Align Center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"></path></svg>
+                </button>
+                <button data-align="right" class="toolbar-format-btn" title="Align Right">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"></path></svg>
+                </button>
+            </header>
+            <div class="flex-grow p-8 custom-scrollbar" id="main-content">
                  <table id="schedule-table" class="schedule-table w-full border-collapse"></table>
             </div>
         </main>
     </div>
 
     <!-- Modals -->
-    <div id="session-modal" class="modal-backdrop">
+    <div id="session-modal" class="modal-backdrop hidden">
         <div class="modal-content">
             <h3 class="text-xl font-bold mb-4">Welcome Back!</h3>
             <p class="text-gray-600 mb-6">Select a saved session to load or start a new one.</p>
@@ -150,24 +173,12 @@
     </div>
     
     <div id="cell-editor-modal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-md">
+        <div class="modal-content max-w-sm">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Edit Cell</h3>
+                <h3 class="text-xl font-bold">Edit Cell Notes & Image</h3>
                 <button id="close-cell-editor-btn" class="modal-close-btn">&times;</button>
             </div>
-            
             <div class="space-y-4">
-                <div class="bg-gray-100 p-2 rounded-lg flex items-center space-x-2" id="cell-format-toolbar">
-                    <select id="cell-font-size-input" class="modal-select w-20 px-2 py-1">
-                        <option value="10px">10</option> <option value="12px">12</option>
-                        <option value="14px" selected>14</option> <option value="16px">16</option>
-                        <option value="20px">20</option> <option value="24px">24</option>
-                    </select>
-                    <input type="color" id="cell-text-color-input" class="w-8 h-8 p-0 border-none bg-transparent">
-                    <button data-align="left" class="format-btn">L</button>
-                    <button data-align="center" class="format-btn">C</button>
-                    <button data-align="right" class="format-btn">R</button>
-                </div>
                 <div>
                     <label for="cell-text-input" class="block text-sm font-medium text-gray-700">Notes</label>
                     <textarea id="cell-text-input" rows="3" class="modal-input"></textarea>
@@ -175,10 +186,6 @@
                 <div>
                     <label for="cell-image-input" class="block text-sm font-medium text-gray-700">Image URL</label>
                     <input type="url" id="cell-image-input" placeholder="https://example.com/image.png" class="modal-input">
-                </div>
-                <div>
-                    <label for="cell-color-input" class="block text-sm font-medium text-gray-700">Background Color</label>
-                    <input type="color" id="cell-color-input" class="w-full h-10 p-1 border-gray-300 rounded-lg">
                 </div>
             </div>
             <div class="mt-6">
