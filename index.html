@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Schedule Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-80 bg-white border-r border-gray-200 p-6 flex flex-col space-y-6">
+            <h1 class="text-2xl font-bold text-gray-900">Scheduler</h1>
+            
+            <!-- Session Management -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold text-gray-700">Session</h2>
+                <input type="text" id="session-name" placeholder="Current session name..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="save-session-btn" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-600">Save</button>
+                    <button id="delete-session-btn" class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-gray-600">Delete</button>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold text-gray-700">Grid Controls</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="add-row-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Add Row</button>
+                    <button id="add-col-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Add Column</button>
+                    <button id="remove-row-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Remove Row</button>
+                    <button id="remove-col-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Remove Column</button>
+                </div>
+                 <button id="view-heatmap-btn" class="w-full bg-teal-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-teal-600">View Heatmap</button>
+            </div>
+
+            <!-- Tags -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold text-gray-700">Tags</h2>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="tag-name-input" placeholder="New tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    <button id="add-tag-btn" class="bg-pink-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-pink-600">+</button>
+                </div>
+                <div id="tags-list" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- Attendees -->
+            <div class="space-y-4 flex-grow flex flex-col min-h-0">
+                <h2 class="text-lg font-semibold text-gray-700">Attendees</h2>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="attendee-name" placeholder="New attendee..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    <button id="add-attendee-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-indigo-700">+</button>
+                </div>
+                <div id="attendees-list" class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-2"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto custom-scrollbar">
+            <div class="p-8" id="main-content">
+                 <table id="schedule-table" class="schedule-table w-full border-collapse"></table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="session-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Welcome Back!</h3>
+            <p class="text-gray-600 mb-6">Select a saved session to load or start a new one.</p>
+            <select id="session-select" class="modal-select"></select>
+            <div class="mt-6 flex space-x-4">
+                <button id="load-session-btn" class="modal-btn-primary">Load</button>
+                <button id="new-session-btn" class="modal-btn-secondary">Start New</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="availability-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-4xl">
+            <h3 class="text-xl font-bold mb-4">Set Availability for <span id="modal-attendee-name"></span></h3>
+            <div class="flex items-center space-x-2 mb-4">
+                <input type="date" id="availability-date-picker" class="modal-input">
+                <button id="add-date-btn" class="modal-btn-primary py-2">Add Date</button>
+            </div>
+            <div id="availability-grid-container" class="overflow-auto custom-scrollbar"></div>
+            <div class="mt-6 flex justify-end">
+                <button id="close-modal-btn" class="modal-btn-primary">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="heatmap-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-5xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Availability Heatmap</h3>
+                <button id="close-heatmap-btn" class="modal-close-btn">&times;</button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Hover over a cell to see who is available. Darker green means more people are free.</p>
+            <div id="heatmap-grid-container" class="overflow-auto custom-scrollbar"></div>
+        </div>
+    </div>
+    
+    <div id="tags-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-md">
+            <h3 class="text-xl font-bold mb-4">Assign Tags</h3>
+            <p class="text-gray-600 mb-4">Select tags for <span id="tag-modal-attendee-name" class="font-semibold"></span>.</p>
+            <div id="modal-tags-list" class="space-y-2"></div>
+            <div class="mt-6 flex justify-end">
+                <button id="save-tags-btn" class="modal-btn-primary">Save Tags</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js" defer></script>
+</body>
+</html>
