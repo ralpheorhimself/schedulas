@@ -25,6 +25,15 @@
                 </div>
             </div>
 
+            <!-- Data Import -->
+            <div class="space-y-2">
+                <h2 class="text-lg font-semibold text-gray-700">Data Import</h2>
+                <button id="import-from-link-btn" class="w-full text-center bg-green-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-600 cursor-pointer">
+                    Import from When2Meet Link
+                </button>
+                <p id="import-feedback" class="text-xs text-gray-500 text-center"></p>
+            </div>
+
             <!-- Controls -->
             <div class="space-y-4">
                 <h2 class="text-lg font-semibold text-gray-700">Grid Controls</h2>
@@ -78,6 +87,31 @@
             </div>
         </div>
     </div>
+    
+    <div id="import-link-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Import from When2Meet</h3>
+                <button id="close-import-link-modal-btn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="text-sm space-y-4">
+                <p>To import data, please follow these steps:</p>
+                <ol class="list-decimal list-inside space-y-2 bg-gray-100 p-4 rounded-lg">
+                    <li><button id="copy-script-btn" class="font-semibold text-indigo-600 hover:underline">Click here to copy the import script</button>.</li>
+                    <li><a id="w2m-link" href="#" target="_blank" class="font-semibold text-indigo-600 hover:underline">Click here to open your event in a new tab</a>.</li>
+                    <li>In the new tab, open the developer console (press F12).</li>
+                    <li>Paste the script (Ctrl+V) and press Enter. A CSV file will download.</li>
+                    <li>Return to this tab and select the downloaded file below.</li>
+                </ol>
+                <div>
+                    <label for="csv-file-input" class="w-full text-center bg-green-500 text-white px-4 py-3 rounded-lg shadow-sm hover:bg-green-600 cursor-pointer block">
+                        Select Downloaded CSV File
+                    </label>
+                    <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="availability-modal" class="modal-backdrop hidden">
         <div class="modal-content max-w-4xl">
@@ -118,3 +152,4 @@
     <script src="app.js" defer></script>
 </body>
 </html>
+
