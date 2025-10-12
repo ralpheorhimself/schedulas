@@ -40,6 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeCellEditorBtn = document.getElementById('close-cell-editor-btn');
     const saveCellBtn = document.getElementById('save-cell-btn');
     const deleteBin = document.getElementById('delete-bin');
+    const masterTaskEditorModal = document.getElementById('master-task-editor-modal');
+    const closeMasterTaskEditorBtn = document.getElementById('close-master-task-editor-btn');
+    const saveMasterTaskBtn = document.getElementById('save-master-task-btn');
+    const addMasterTaskBtn = document.getElementById('add-master-task-btn');
+    const masterTasksList = document.getElementById('master-tasks-list');
+    const suggestTaskDateBtn = document.getElementById('suggest-task-date-btn');
+    const taskSuggestionModal = document.getElementById('task-suggestion-modal');
+    const closeTaskSuggestionBtn = document.getElementById('close-task-suggestion-btn');
+    const taskSuggestionSelect = document.getElementById('task-suggestion-select');
+    const taskSuggestionResults = document.getElementById('task-suggestion-results');
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const sidebar = document.getElementById('sidebar');
 
     // --- App State ---
     let appState = {};
@@ -47,15 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeFilterTagId = null;
     let selectedCells = [];
     let selectionStartCell = null;
+    let currentEditingMasterTaskId = null;
+    let currentEditingCellKey = null;
     
     const defaultState = {
-        attendees: [], tags: [], gridContent: {},
+        attendees: [], tags: [], gridContent: {}, masterTasks: [],
         gridConfig: { 
             rows: 5, cols: 7, 
             rowHeights: {}, colWidths: {}, 
             merges: {}, dateHeaders: [] 
         },
-        nextAttendeeId: 0, nextTagId: 0
+        nextAttendeeId: 0, nextTagId: 0, nextMasterTaskId: 0
     };
     
     // --- Session & Core Rendering ---
@@ -63,9 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const savedState = localStorage.getItem(sessionName);
             appState = savedState ? JSON.parse(savedState) : { ...JSON.parse(JSON.stringify(defaultState)) };
-            if (!appState.gridConfig) appState.gridConfig = { ...defaultState.gridConfig };
+            if (!appState.masterTasks) appState.masterTasks = [];
             if (!appState.gridConfig.merges) appState.gridConfig.merges = {};
-            if (!appState.gridConfig.dateHeaders) appState.gridConfig.dateHeaders = [];
         } catch (error) {
             console.error("Failed to load session, resetting.", error);
             appState = { ...JSON.parse(JSON.stringify(defaultState)) };
@@ -75,14 +88,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAll();
     }
     
-    function renderAll() { renderGrid(); renderAttendees(); renderTags(); }
+    function renderAll() { renderGrid(); renderAttendees(); renderTags(); renderMasterTasks(); }
 
     function renderGrid() {
+        if (!appState.gridConfig) return;
         const { rows, cols, rowHeights, colWidths, merges, dateHeaders } = appState.gridConfig;
         let tableHTML = '<thead><tr><th></th>';
         for (let i = 0; i < cols; i++) {
-            const width = colWidths[i] ? `style="width: ${colWidths[i]}px;"` : '';
-            const dateHeader = dateHeaders[i] ? formatDate(dateHeaders[i]) : `Column ${i + 1}`;
+            const width = colWidths && colWidths[i] ? `style="width: ${colWidths[i]}px;"` : '';
+            const dateHeader = dateHeaders && dateHeaders[i] ? formatDate(dateHeaders[i]) : `Column ${i + 1}`;
             tableHTML += `<th data-col="${i}" contenteditable="true" class="col-resizable" ${width}>${dateHeader}</th>`;
         }
         tableHTML += '</tr></thead><tbody>';
@@ -101,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         for (let i = 0; i < rows; i++) {
-            const height = rowHeights[i] ? `style="height: ${rowHeights[i]}px;"` : '';
+            const height = rowHeights && rowHeights[i] ? `style="height: ${rowHeights[i]}px;"` : '';
             tableHTML += `<tr data-row="${i}" ${height}><th data-row="${i}" class="row-resizable" contenteditable="true">R${i+1}</th>`;
             for (let j = 0; j < cols; j++) {
                 const key = `r${i}_c${j}`;
@@ -122,6 +136,16 @@ document.addEventListener('DOMContentLoaded', () => {
                      cellContentHTML += cellData.attendees.map(item => createAttendeeBlockHTML(item)).join('');
                      cellContentHTML += '</div>';
                 }
+                 if(cellData.tasks?.length > 0) {
+                     cellContentHTML += '<div class="cell-tasks-container">';
+                     cellContentHTML += cellData.tasks.map(taskId => {
+                         const task = appState.masterTasks.find(t => t.id === taskId);
+                         if (!task) return '';
+                         const picNames = (task.picAttendeeIds || []).map(id => appState.attendees.find(a => a.id === id)?.name || 'N/A').join(', ');
+                         return `<div class="task-item">${task.title} <strong>(${picNames})</strong></div>`;
+                     }).join('');
+                     cellContentHTML += '</div>';
+                }
                 cellContentHTML += '</div>';
     
                 tableHTML += `<td data-row="${i}" data-col="${j}" style="${styles}" ${colspan} ${rowspan}>${cellContentHTML}</td>`;
@@ -131,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHTML += '</tbody></table>';
         scheduleTable.innerHTML = tableHTML;
         updateSelectionUI();
+        lucide.createIcons();
     }
     
     function createAttendeeBlockHTML(item) {
@@ -153,13 +178,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAttendees() {
-        attendeesList.innerHTML = appState.attendees.map(e => `<div id="attendee-${e.id}" class="attendee-block" style="background-color: ${e.color};" draggable="true"><div class="attendee-name-bar"><span>${e.name}</span><div class="flex items-center ml-auto"><button class="set-availability-btn text-xs text-white opacity-70 hover:opacity-100 p-1" data-id="${e.id}">Avail</button><button class="remove-attendee-btn text-xs text-white opacity-70 hover:opacity-100 p-1" data-id="${e.id}">X</button></div></div></div>`).join("");
+        attendeesList.innerHTML = appState.attendees.map(e => `<div id="attendee-${e.id}" class="sidebar-item" style="background-color: ${e.color};" draggable="true"><div class="attendee-name-bar"><span>${e.name}</span><div class="flex items-center ml-auto"><button class="set-availability-btn text-xs text-white opacity-70 hover:opacity-100 p-1" data-id="${e.id}">Avail</button><button class="remove-attendee-btn text-xs text-white opacity-70 hover:opacity-100 p-1" data-id="${e.id}">X</button></div></div></div>`).join("");
     }
 
     function renderTags() {
         tagsList.innerHTML = appState.tags.map(e => `<div class="sidebar-tag ${activeFilterTagId === e.id ? "filter-active" : ""}" style="background-color: ${e.color}; color: white;" data-tag-id="${e.id}" draggable="true">${e.name}</div>`).join("");
     }
     
+    function renderMasterTasks() {
+        masterTasksList.innerHTML = (appState.masterTasks || []).map(task => {
+            return `
+                <div class="sidebar-item" style="background-color: #f3f4f6; color: #374151;" draggable="true" data-task-id="${task.id}">
+                    <span>${task.title}</span>
+                    <button class="edit-master-task-btn text-xs" data-task-id="${task.id}">Edit</button>
+                </div>
+            `;
+        }).join('');
+    }
+
     function showSuggestionPopover(cell) {
         const col = parseInt(cell.dataset.col);
         const date = appState.gridConfig.dateHeaders[col];
@@ -177,20 +213,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-        if (maxAvailable === 0) return;
-        const bestHours = [];
-        for (let i = 0; i < 24; i++) {
-            if (availabilityByHour[i].count === maxAvailable) bestHours.push(formatTime(i));
+        
+        const bestGeneralHours = [];
+        if (maxAvailable > 0) {
+            for (let i = 0; i < 24; i++) {
+                if (availabilityByHour[i].count === maxAvailable) {
+                    bestGeneralHours.push(formatTime(i));
+                }
+            }
         }
+        
+        const key = `r${cell.dataset.row}_c${cell.dataset.col}`;
+        const cellData = appState.gridContent[key] || {};
+        const tasks = (cellData.tasks || []).map(taskId => appState.masterTasks.find(t => t.id === taskId)).filter(Boolean);
+        let taskContent = '';
+
+        if (tasks.length > 0) {
+            taskContent += `<div class="task-suggestions-container"><h4>Task Availability</h4>`;
+            tasks.forEach(task => {
+                const requiredAttendees = new Set(task.picAttendeeIds || []);
+                (task.requiredTagIds || []).forEach(tagId => {
+                    appState.attendees.forEach(attendee => {
+                        if((attendee.tags || []).includes(tagId)){
+                            requiredAttendees.add(attendee.id);
+                        }
+                    });
+                });
+                
+                const requiredPpl = [...requiredAttendees].map(id => appState.attendees.find(a => a.id === id)).filter(Boolean);
+
+                if (requiredPpl.length === 0) {
+                     taskContent += `<div class="task-suggestion"><strong>${task.title}:</strong> No people required.</div>`;
+                     return;
+                }
+
+                let bestHourForTask = -1;
+                let maxAvailableForTask = -1;
+
+                for (let hour = 0; hour < 24; hour++) {
+                    let currentHourAvailable = 0;
+                    requiredPpl.forEach(p => {
+                        if (p.availability?.[date]?.[hour]) {
+                            currentHourAvailable++;
+                        }
+                    });
+                    if (currentHourAvailable > maxAvailableForTask) {
+                        maxAvailableForTask = currentHourAvailable;
+                        bestHourForTask = hour;
+                    }
+                }
+                
+                const fitPercentage = (maxAvailableForTask / requiredPpl.length) * 100;
+                
+                taskContent += `<div class="task-suggestion">`;
+                taskContent += `<strong>${task.title} - ${fitPercentage.toFixed(0)}% Fit</strong>`;
+                taskContent += `<br><small>Best time: ${formatTime(bestHourForTask)} (${maxAvailableForTask}/${requiredPpl.length} available)</small>`;
+                taskContent += `</div>`;
+            });
+            taskContent += `</div>`;
+        }
+
         const popover = document.createElement('div');
         popover.id = 'suggestion-popover';
         let content = `<h4>Suggestions for ${formatDate(date)}</h4>`;
-        content += `<div class="best-times"><strong>Best Times:</strong> ${bestHours.join(', ')} (${maxAvailable} people)</div>`;
-        content += '<table class="details-table"><thead><tr><th>Time</th><th>Available</th></tr></thead><tbody>';
-        availabilityByHour.forEach((hourData, hour) => {
-            if (hourData.count > 0) content += `<tr><td>${formatTime(hour)}</td><td>${hourData.names.join(', ')}</td></tr>`;
-        });
-        content += '</tbody></table>';
+        
+        if (bestGeneralHours.length > 0) {
+            content += `<div class="best-times"><strong>Best Times (Overall):</strong> ${bestGeneralHours.join(', ')} (${maxAvailable} people)</div>`;
+        } else {
+            content += `<div class="best-times">No one is available on this day.</div>`;
+        }
+
+        if (taskContent) {
+            content += taskContent;
+        }
+        
         popover.innerHTML = content;
         document.body.appendChild(popover);
 
@@ -469,13 +565,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let draggedItem = null;
 
     function handleDragStart(e) {
-        const t = e.target.closest(".attendee-block, .sidebar-tag");
+        const t = e.target.closest(".attendee-block, .sidebar-tag, .sidebar-item");
         if (t) {
             let a;
             if (t.classList.contains("sidebar-tag")) a = {
                 type: "tag",
                 id: parseInt(t.dataset.tagId)
             };
+            else if(t.dataset.taskId) {
+                a = {
+                    type: "master-task",
+                    id: parseInt(t.dataset.taskId)
+                };
+            }
             else {
                 const e = parseInt(t.id?.split("-")[1] || t.dataset.id);
                 a = {
@@ -493,24 +595,34 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const data = JSON.parse(e.dataTransfer.getData("application/json"));
         const targetCell = e.target.closest("td");
+        const onSidebar = e.target.closest("#sidebar");
 
-        if (targetCell && data.type === 'attendee') {
+        if (onSidebar && data.sourceKey) {
+             const sourceCellData = appState.gridContent[data.sourceKey];
+             if (sourceCellData && sourceCellData.attendees) {
+                sourceCellData.attendees = sourceCellData.attendees.filter(att => att.id !== data.id);
+             }
+        }
+        else if (targetCell) {
             const key = `r${targetCell.dataset.row}_c${targetCell.dataset.col}`;
-            appState.gridContent[key] || (appState.gridContent[key] = { attendees: [], text: '', image: '', bgColor: '' });
-            appState.gridContent[key].attendees || (appState.gridContent[key].attendees = []);
-            
-            let itemToAdd = { id: data.id, tags: [] };
-            
-            if (data.sourceKey) {
-                const sourceCellData = appState.gridContent[data.sourceKey];
-                const itemIndex = sourceCellData.attendees.findIndex(i => i.id === data.id);
-                if (itemIndex > -1) {
-                    itemToAdd = sourceCellData.attendees.splice(itemIndex, 1)[0];
+            appState.gridContent[key] || (appState.gridContent[key] = { attendees: [], text: '', image: '', bgColor: '', tasks: [] });
+
+            if (data.type === 'attendee') {
+                appState.gridContent[key].attendees || (appState.gridContent[key].attendees = []);
+                let itemToAdd = { id: data.id, tags: [] };
+                if (data.sourceKey) {
+                    const sourceCellData = appState.gridContent[data.sourceKey];
+                    const itemIndex = sourceCellData.attendees.findIndex(i => i.id === data.id);
+                    if (itemIndex > -1) itemToAdd = sourceCellData.attendees.splice(itemIndex, 1)[0];
                 }
-            }
-            
-            if (!appState.gridContent[key].attendees.some(i => i.id === data.id)) {
-                appState.gridContent[key].attendees.push(itemToAdd);
+                if (!appState.gridContent[key].attendees.some(i => i.id === data.id)) {
+                    appState.gridContent[key].attendees.push(itemToAdd);
+                }
+            } else if (data.type === 'master-task') {
+                appState.gridContent[key].tasks || (appState.gridContent[key].tasks = []);
+                if (!appState.gridContent[key].tasks.includes(data.id)) {
+                    appState.gridContent[key].tasks.push(data.id);
+                }
             }
         }
         renderAll();
@@ -627,6 +739,84 @@ document.addEventListener('DOMContentLoaded', () => {
         i.style.left = `${s}px`, i.style.top = `${c}px`
     }
 
+    function openMasterTaskEditor(e = null) {
+        currentEditingMasterTaskId = e;
+        const t = e !== null ? appState.masterTasks.find(t => t.id === e) : {};
+        document.getElementById("master-task-title").value = t?.title || "", 
+        document.getElementById("master-task-pics").innerHTML = appState.attendees.map(e => `<label class="flex items-center space-x-2"><input type="checkbox" value="${e.id}" ${(t?.picAttendeeIds||[]).includes(e.id)?"checked":""}><span>${e.name}</span></label>`).join("");
+        const a = document.getElementById("master-task-tags");
+        a.innerHTML = appState.tags.map(e => `<label class="flex items-center space-x-2"><input type="checkbox" value="${e.id}" ${(t?.requiredTagIds||[]).includes(e.id)?"checked":""}><span>${e.name}</span></label>`).join(""), masterTaskEditorModal.classList.remove("hidden")
+    }
+
+    function saveMasterTask() {
+        const e = document.getElementById("master-task-title").value.trim();
+        if (e) {
+            const t = Array.from(document.querySelectorAll("#master-task-pics input:checked")).map(e => parseInt(e.value)),
+                a = Array.from(document.querySelectorAll("#master-task-tags input:checked")).map(e => parseInt(e.value));
+            if (null !== currentEditingMasterTaskId) {
+                const n = appState.masterTasks.find(e => e.id === currentEditingMasterTaskId);
+                n.title = e;
+                n.picAttendeeIds = t;
+                n.requiredTagIds = a;
+            } else {
+                appState.masterTasks.push({
+                    id: appState.nextMasterTaskId++,
+                    title: e,
+                    picAttendeeIds: t,
+                    requiredTagIds: a
+                });
+            }
+            masterTaskEditorModal.classList.add("hidden"), renderMasterTasks(), saveActiveSession();
+        }
+    }
+
+    function openTaskSuggestionModal() {
+        taskSuggestionSelect.innerHTML = appState.masterTasks.map(e => `<option value="${e.id}">${e.title}</option>`).join(""), calculateAndShowSuggestions(), taskSuggestionModal.classList.remove("hidden")
+    }
+
+    function calculateAndShowSuggestions() {
+        const e = parseInt(taskSuggestionSelect.value);
+        if (isNaN(e)) return void(taskSuggestionResults.innerHTML = "<p>Please create a task first.</p>");
+        const t = appState.masterTasks.find(t => t.id === e),
+            a = new Set(t.picAttendeeIds || []);
+        (t.requiredTagIds || []).forEach(tagId => {
+            appState.attendees.forEach(attendee => {
+                if((attendee.tags || []).includes(tagId)) a.add(attendee.id);
+            });
+        });
+        const n = [...a];
+        if (0 === n.length) return void(taskSuggestionResults.innerHTML = "<p>No attendees are assigned to this task's roles.</p>");
+        const o = new Set;
+        appState.attendees.forEach(e => Object.keys(e.availability || {}).forEach(e => o.add(e)));
+        const d = [];
+        o.forEach(e => {
+            let t = -1,
+                a = -1,
+                o = [],
+                r = [];
+            for (let i = 0; i < 24; i++) {
+                let d = [];
+                n.forEach(t => {
+                    const n = appState.attendees.find(e => e.id === t);
+                    n?.availability?.[e]?.[i] && d.push(n.name)
+                }), d.length > a && (a = d.length, t = i, o = d)
+            } - 1 !== t && (r = n.map(e => appState.attendees.find(t => t.id === e).name).filter(e => !o.includes(e)), d.push({
+                date: e,
+                score: a / n.length * 100,
+                bestHour: t,
+                available: o,
+                unavailable: r
+            }))
+        }), d.sort((e, t) => t.score - e.score), taskSuggestionResults.innerHTML = d.map(e => `
+            <div class="suggestion-card">
+                <h4 class="font-bold">${formatDate(e.date)} - ${e.score.toFixed(0)}% Match</h4>
+                <p><strong>Best Time:</strong> ${formatTime(e.bestHour)} (${e.available.length}/${n.length} available)</p>
+                <p><small><strong>Available:</strong> ${e.available.join(", ")|| "None"}</small></p>
+                <p><small><strong>Unavailable:</strong> ${e.unavailable.join(", ")||"None"}</small></p>
+            </div>
+        `).join("")
+    }
+
     function init() {
         loadSessionBtn.addEventListener('click', () => { if(sessionSelect.value) loadSession(sessionSelect.value); sessionModal.classList.add('hidden'); });
         newSessionBtn.addEventListener('click', () => { const newName = prompt("Enter name for the new session:", "New Session " + new Date().toLocaleDateString()); if (newName) { loadSession(newName); saveActiveSession(); } sessionModal.classList.add('hidden'); });
@@ -646,13 +836,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tagsList.addEventListener('click', e => { const tagEl = e.target.closest('.sidebar-tag'); if (tagEl) toggleTagFilter(parseInt(tagEl.dataset.tagId)); });
         attendeesList.addEventListener('click', e => { const target = e.target; const id = parseInt(target.dataset.id); if (target.classList.contains('remove-attendee-btn')) { appState.attendees = appState.attendees.filter(a => a.id !== id); renderAll(); saveActiveSession(); } if (target.classList.contains('set-availability-btn')) { openAvailabilityModal(id); } });
         mainContent.addEventListener('click', e => { if (e.target.classList.contains('assign-tags-btn')) { openTagsModal(e.target.closest('.placed-attendee')); } else { const cell = e.target.closest('td'); if (cell && !e.target.closest('.attendee-block')) { openCellEditorModal(cell); } } });
-        const cellEditorModal = document.getElementById('cell-editor-modal');
-        const closeCellEditorBtn = document.getElementById('close-cell-editor-btn');
-        const saveCellBtn = document.getElementById('save-cell-btn');
         closeCellEditorBtn.addEventListener('click', () => cellEditorModal.classList.add('hidden'));
         saveCellBtn.addEventListener('click', saveCellChanges);
         attendeesList.addEventListener('dragstart', handleDragStart);
         tagsList.addEventListener('dragstart', handleDragStart);
+        masterTasksList.addEventListener('dragstart', handleDragStart);
         mainContent.addEventListener('dragstart', handleDragStart);
         mainContent.addEventListener('dragover', e => e.preventDefault());
         mainContent.addEventListener('drop', handleDrop);
@@ -692,7 +880,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         }); 
                     } 
                 }); 
-            } 
+            } else if(data.type === 'master-task'){
+                appState.masterTasks = appState.masterTasks.filter(t => t.id !== data.id);
+                Object.values(appState.gridContent).forEach(cell => {
+                    if(cell.tasks) cell.tasks = cell.tasks.filter(tid => tid !== data.id);
+                });
+            }
             renderAll(); 
             saveActiveSession(); 
         });
@@ -715,11 +908,45 @@ document.addEventListener('DOMContentLoaded', () => {
         heatmapGridContainer.addEventListener('mouseout', () => document.getElementById('heatmap-tooltip')?.remove());
         mainContent.addEventListener('mouseover', e => { const cell = e.target.closest('td'); if (cell && !document.getElementById('suggestion-popover')) { showSuggestionPopover(cell); }});
         mainContent.addEventListener('mouseout', e => { const cell = e.target.closest('td'); if(cell){ hideSuggestionPopover(); }});
+
+        addMasterTaskBtn.addEventListener('click', () => openMasterTaskEditor());
+        closeMasterTaskEditorBtn.addEventListener('click', () => masterTaskEditorModal.classList.add('hidden'));
+        saveMasterTaskBtn.addEventListener('click', saveMasterTask);
+        masterTasksList.addEventListener('click', e => { if (e.target.classList.contains('edit-master-task-btn')) { openMasterTaskEditor(parseInt(e.target.dataset.taskId)); } });
+        suggestTaskDateBtn.addEventListener('click', openTaskSuggestionModal);
+        closeTaskSuggestionBtn.addEventListener('click', () => taskSuggestionModal.classList.add('hidden'));
+        taskSuggestionSelect.addEventListener('change', calculateAndShowSuggestions);
+
+         document.getElementById('sidebar').addEventListener('dragover', e => {
+            e.preventDefault();
+            document.getElementById('sidebar').classList.add('drag-over');
+        });
+        document.getElementById('sidebar').addEventListener('dragleave', () => {
+             document.getElementById('sidebar').classList.remove('drag-over');
+        });
+        document.getElementById('sidebar').addEventListener('drop', e => {
+             document.getElementById('sidebar').classList.remove('drag-over');
+             handleDrop(e);
+        });
+        menuToggleBtn.addEventListener('click', () => sidebar.classList.toggle('sidebar-open'));
+
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const item = header.parentElement;
+                if(item.hasAttribute('open')) {
+                    // This is to allow the default closing behavior
+                } else {
+                    // This is to allow the default opening behavior
+                }
+            });
+        });
+
+        lucide.createIcons();
     }
     
     // --- Full function bodies for brevity and completeness ---
     // (These functions are unchanged but provided here to make the script whole)
-    const formatDate = (dateStr) => new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
     const formatTime = (hour) => {
         const h = parseInt(hour); if (h === 0) return '12 AM'; if (h === 12) return '12 PM';
         if (h < 12) return `${h} AM`; return `${h - 12} PM`;

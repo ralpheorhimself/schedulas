@@ -3,196 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Schedule Planner</title>
+    <title>Schedulàs - Event Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-background text-foreground">
 
-    <div class="flex h-screen overflow-hidden">
+    <div class="relative min-h-screen lg:flex">
         <!-- Sidebar -->
-        <aside class="w-80 bg-white border-r border-gray-200 p-6 flex flex-col space-y-6">
-            <h1 class="text-2xl font-bold text-gray-900">Scheduler</h1>
-            
-            <!-- Session Management -->
-            <div class="space-y-4">
-                <h2 class="text-lg font-semibold text-gray-700">Session</h2>
-                <input type="text" id="session-name" placeholder="Current session name..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="save-session-btn" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-600">Save</button>
-                    <button id="delete-session-btn" class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-gray-600">Delete</button>
+        <aside id="sidebar" class="sidebar-closed lg:sidebar-open">
+            <div class="p-4 flex flex-col space-y-4 h-full">
+                <div class="flex items-center justify-between px-2">
+                    <h1 class="text-2xl font-bold text-gray-900">Schedulàs</h1>
+                    <button id="sidebar-close-btn" class="toolbar-btn lg:hidden">&times;</button>
                 </div>
-            </div>
-
-            <!-- Data Import -->
-            <div class="space-y-2">
-                <h2 class="text-lg font-semibold text-gray-700">Data Import</h2>
-                <button id="import-from-link-btn" class="w-full text-center bg-green-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-600 cursor-pointer">
-                    Import from When2Meet Link
-                </button>
-                <p id="import-feedback" class="text-xs text-gray-500 text-center"></p>
-            </div>
-
-            <!-- Controls -->
-            <div class="space-y-4">
-                <h2 class="text-lg font-semibold text-gray-700">Grid Controls</h2>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="add-row-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Add Row</button>
-                    <button id="add-col-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Add Column</button>
-                    <button id="remove-row-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Remove Row</button>
-                    <button id="remove-col-btn" class="w-full bg-white border text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50">Remove Column</button>
+                
+                <div class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                    <!-- Accordion Sections -->
+                    <div class="space-y-2">
+                        <details class="accordion-item" open>
+                            <summary class="accordion-header"><span>Session</span><i data-lucide="chevron-down" class="w-4 h-4"></i></summary>
+                            <div class="accordion-content">
+                                <input type="text" id="session-name" placeholder="Current session..." class="modal-input mb-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button id="save-session-btn" class="btn btn-primary">Save</button>
+                                    <button id="delete-session-btn" class="btn btn-secondary">Delete</button>
+                                </div>
+                            </div>
+                        </details>
+                        <details class="accordion-item">
+                            <summary class="accordion-header"><span>Data & Grid</span><i data-lucide="chevron-down" class="w-4 h-4"></i></summary>
+                            <div class="accordion-content">
+                                <button id="import-from-link-btn" class="btn btn-success w-full mb-2">Import When2Meet</button>
+                                <p id="import-feedback" class="text-xs text-muted-foreground text-center mb-2"></p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button id="add-row-btn" class="btn btn-secondary">Add Row</button> <button id="add-col-btn" class="btn btn-secondary">Add Col</button>
+                                    <button id="remove-row-btn" class="btn btn-secondary">Remove Row</button> <button id="remove-col-btn" class="btn btn-secondary">Remove Col</button>
+                                </div>
+                                <button id="view-heatmap-btn" class="btn btn-accent w-full mt-2">View Heatmap</button>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="space-y-4 pt-4">
+                         <div>
+                            <h2 class="sidebar-heading">Master Tasks</h2>
+                            <div id="master-tasks-list" class="sidebar-list"></div>
+                            <button id="add-master-task-btn" class="btn btn-secondary w-full mt-2">New Task</button>
+                        </div>
+                        <div>
+                            <h2 class="sidebar-heading">Tags</h2>
+                             <div id="tags-list" class="sidebar-list"></div>
+                            <div class="flex items-center space-x-2 mt-2">
+                                <input type="text" id="tag-name-input" placeholder="New tag..." class="modal-input flex-grow">
+                                <button id="add-tag-btn" class="btn-icon bg-pink-600 text-white hover:bg-pink-700">+</button>
+                            </div>
+                        </div>
+                        <div class="flex-grow flex flex-col min-h-0">
+                            <h2 class="sidebar-heading">Attendees</h2>
+                            <div id="attendees-list" class="sidebar-list flex-grow"></div>
+                            <div class="flex items-center space-x-2 mt-2">
+                                <input type="text" id="attendee-name" placeholder="New attendee..." class="modal-input flex-grow">
+                                <button id="add-attendee-btn" class="btn-icon bg-indigo-600 text-white hover:bg-indigo-700">+</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                 <button id="view-heatmap-btn" class="w-full bg-teal-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-teal-600">View Heatmap</button>
-            </div>
 
-            <!-- Tags -->
-            <div class="space-y-4">
-                <h2 class="text-lg font-semibold text-gray-700">Tags</h2>
-                <div class="flex items-center space-x-2">
-                    <input type="text" id="tag-name-input" placeholder="New tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
-                    <button id="add-tag-btn" class="bg-pink-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-pink-600">+</button>
+                 <!-- Delete Bin -->
+                <div id="delete-bin" class="h-24 border-2 border-dashed border-muted rounded-lg flex items-center justify-center text-muted-foreground transition-colors flex-shrink-0">
+                    <i data-lucide="trash-2" class="w-6 h-6"></i>
+                    <span class="ml-2">Drag here to delete</span>
                 </div>
-                <div id="tags-list" class="flex flex-wrap gap-2"></div>
-            </div>
-
-            <!-- Attendees -->
-            <div class="space-y-4 flex-grow flex flex-col min-h-0">
-                <h2 class="text-lg font-semibold text-gray-700">Attendees</h2>
-                <div class="flex items-center space-x-2">
-                    <input type="text" id="attendee-name" placeholder="New attendee..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
-                    <button id="add-attendee-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-indigo-700">+</button>
-                </div>
-                <div id="attendees-list" class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-2"></div>
-            </div>
-             <!-- Delete Bin -->
-            <div id="delete-bin" class="h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 transition-colors">
-                <span>Drag here to delete</span>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col overflow-auto">
-            <header id="main-toolbar" class="bg-gray-100 p-2 border-b border-gray-200 flex items-center space-x-2 sticky top-0 z-10">
-                <button id="merge-cells-btn" class="toolbar-btn">Merge</button>
+        <main class="flex-1 flex flex-col overflow-auto bg-background">
+            <header id="main-toolbar" class="bg-card p-2 border-b border-muted flex items-center space-x-2 sticky top-0 z-10">
+                 <button id="menu-toggle-btn" class="toolbar-btn lg:hidden">
+                    <i data-lucide="menu"></i>
+                </button>
+                <button id="merge-cells-btn" class="toolbar-btn" title="Merge Cells"><i data-lucide="combine"></i></button>
+                <button id="suggest-task-date-btn" class="toolbar-btn" title="Suggest Task Date"><i data-lucide="lightbulb"></i></button>
                 <select id="toolbar-font-size" class="toolbar-select w-20 px-2 py-1">
                     <option value="10px">10</option> <option value="12px">12</option>
                     <option value="14px">14</option> <option value="16px">16</option>
                     <option value="20px">20</option> <option value="24px">24</option>
                 </select>
-                <input type="color" id="toolbar-text-color" class="w-8 h-8 p-0 border-none bg-transparent" title="Text Color">
-                <input type="color" id="toolbar-bg-color" class="w-8 h-8 p-0 border-none bg-transparent" title="Background Color">
-                <button data-align="left" class="toolbar-format-btn" title="Align Left">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path></svg>
-                </button>
-                <button data-align="center" class="toolbar-format-btn" title="Align Center">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"></path></svg>
-                </button>
-                <button data-align="right" class="toolbar-format-btn" title="Align Right">
-                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"></path></svg>
-                </button>
+                <input type="color" id="toolbar-text-color" class="toolbar-color-input" title="Text Color">
+                <input type="color" id="toolbar-bg-color" class="toolbar-color-input" title="Background Color">
+                <button data-align="left" class="toolbar-format-btn" title="Align Left">L</button>
+                <button data-align="center" class="toolbar-format-btn" title="Align Center">C</button>
+                <button data-align="right" class="toolbar-format-btn" title="Align Right">R</button>
             </header>
-            <div class="flex-grow p-8 custom-scrollbar" id="main-content">
+            <div class="flex-grow p-4 sm:p-8 custom-scrollbar" id="main-content">
                  <table id="schedule-table" class="schedule-table w-full border-collapse"></table>
             </div>
         </main>
     </div>
 
     <!-- Modals -->
-    <div id="session-modal" class="modal-backdrop hidden">
-        <div class="modal-content">
-            <h3 class="text-xl font-bold mb-4">Welcome Back!</h3>
-            <p class="text-gray-600 mb-6">Select a saved session to load or start a new one.</p>
-            <select id="session-select" class="modal-select"></select>
-            <div class="mt-6 flex space-x-4">
-                <button id="load-session-btn" class="modal-btn-primary">Load</button>
-                <button id="new-session-btn" class="modal-btn-secondary">Start New</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="import-link-modal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-lg">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Import from When2Meet</h3>
-                <button id="close-import-link-modal-btn" class="modal-close-btn">&times;</button>
-            </div>
-            <div class="text-sm space-y-4">
-                <p>To import data, please follow these steps:</p>
-                <ol class="list-decimal list-inside space-y-2 bg-gray-100 p-4 rounded-lg">
-                    <li><button id="copy-script-btn" class="font-semibold text-indigo-600 hover:underline">Click here to copy the import script</button>.</li>
-                    <li><a id="w2m-link" href="#" target="_blank" class="font-semibold text-indigo-600 hover:underline">Click here to open your event in a new tab</a>.</li>
-                    <li>In the new tab, open the developer console (press F12).</li>
-                    <li>Paste the script (Ctrl+V) and press Enter. A CSV file will download.</li>
-                    <li>Return to this tab and select the downloaded file below.</li>
-                </ol>
-                <div>
-                    <label for="csv-file-input" class="w-full text-center bg-green-500 text-white px-4 py-3 rounded-lg shadow-sm hover:bg-green-600 cursor-pointer block">
-                        Select Downloaded CSV File
-                    </label>
-                    <input type="file" id="csv-file-input" accept=".csv" class="hidden">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="availability-modal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-4xl">
-            <h3 class="text-xl font-bold mb-4">Set Availability for <span id="modal-attendee-name"></span></h3>
-            <div class="flex items-center space-x-2 mb-4">
-                <input type="date" id="availability-date-picker" class="modal-input">
-                <button id="add-date-btn" class="modal-btn-primary py-2">Add Date</button>
-            </div>
-            <div id="availability-grid-container" class="overflow-auto custom-scrollbar"></div>
-            <div class="mt-6 flex justify-end">
-                <button id="close-modal-btn" class="modal-btn-primary">Done</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="heatmap-modal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-5xl">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Availability Heatmap</h3>
-                <button id="close-heatmap-btn" class="modal-close-btn">&times;</button>
-            </div>
-            <p class="text-sm text-gray-600 mb-4">Hover over a cell to see who is available. Darker green means more people are free.</p>
-            <div id="heatmap-grid-container" class="overflow-auto custom-scrollbar"></div>
-        </div>
-    </div>
-    
-    <div id="tags-modal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-md">
-            <h3 class="text-xl font-bold mb-4">Assign Tags</h3>
-            <p class="text-gray-600 mb-4">Select tags for <span id="tag-modal-attendee-name" class="font-semibold"></span>.</p>
-            <div id="modal-tags-list" class="space-y-2"></div>
-            <div class="mt-6 flex justify-end">
-                <button id="save-tags-btn" class="modal-btn-primary">Save Tags</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="cell-editor-modal" class="modal-backdrop hidden">
-        <div class="modal-content max-w-sm">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Edit Cell Notes & Image</h3>
-                <button id="close-cell-editor-btn" class="modal-close-btn">&times;</button>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <label for="cell-text-input" class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea id="cell-text-input" rows="3" class="modal-input"></textarea>
-                </div>
-                <div>
-                    <label for="cell-image-input" class="block text-sm font-medium text-gray-700">Image URL</label>
-                    <input type="url" id="cell-image-input" placeholder="https://example.com/image.png" class="modal-input">
-                </div>
-            </div>
-            <div class="mt-6">
-                <button id="save-cell-btn" class="modal-btn-primary">Save Changes</button>
-            </div>
-        </div>
-    </div>
+    <div id="session-modal" class="modal-backdrop hidden"><div class="modal-content"><h3 class="modal-title">Welcome Back!</h3><p class="text-muted-foreground mb-6">Select a session or start new.</p><select id="session-select" class="modal-select"></select><div class="mt-6 flex space-x-4"><button id="load-session-btn" class="btn btn-primary">Load</button><button id="new-session-btn" class="btn btn-secondary">Start New</button></div></div></div>
+    <div id="import-link-modal" class="modal-backdrop hidden"><div class="modal-content max-w-lg"><div class="modal-header"><h3 class="modal-title">Import from When2Meet</h3><button id="close-import-link-modal-btn" class="modal-close-btn">&times;</button></div><div class="text-sm space-y-4"><p>Follow these steps:</p><ol class="list-decimal list-inside space-y-2 bg-muted/50 p-4 rounded-lg"><li><button id="copy-script-btn" class="font-semibold text-primary hover:underline">Copy script</button>.</li><li><a id="w2m-link" href="#" target="_blank" class="font-semibold text-primary hover:underline">Open event</a>.</li><li>In the new tab, open console (F12), paste (Ctrl+V) & press Enter.</li><li>Return here and select the downloaded CSV file below.</li></ol><div><label for="csv-file-input" class="btn btn-success w-full text-center block">Select Downloaded CSV</label><input type="file" id="csv-file-input" accept=".csv" class="hidden"></div></div></div></div>
+    <div id="availability-modal" class="modal-backdrop hidden"><div class="modal-content max-w-4xl"><h3 class="modal-title">Set Availability for <span id="modal-attendee-name"></span></h3><div class="flex items-center space-x-2 mb-4"><input type="date" id="availability-date-picker" class="modal-input"><button id="add-date-btn" class="btn btn-primary py-2">Add Date</button></div><div id="availability-grid-container" class="overflow-auto custom-scrollbar"></div><div class="mt-6 flex justify-end"><button id="close-modal-btn" class="btn btn-primary">Done</button></div></div></div>
+    <div id="heatmap-modal" class="modal-backdrop hidden"><div class="modal-content max-w-5xl"><div class="modal-header"><h3 class="modal-title">Availability Heatmap</h3><button id="close-heatmap-btn" class="modal-close-btn">&times;</button></div><p class="text-sm text-muted-foreground mb-4">Hover to see details.</p><div id="heatmap-grid-container" class="overflow-auto custom-scrollbar"></div></div></div>
+    <div id="tags-modal" class="modal-backdrop hidden"><div class="modal-content max-w-md"><h3 class="modal-title">Assign Tags to <span id="tag-modal-attendee-name" class="font-semibold"></span></h3><div id="modal-tags-list" class="space-y-2"></div><div class="mt-6 flex justify-end"><button id="save-tags-btn" class="btn btn-primary">Save Tags</button></div></div></div>
+    <div id="master-task-editor-modal" class="modal-backdrop hidden"><div class="modal-content max-w-lg"><div class="modal-header"><h3 class="modal-title">Task Editor</h3><button id="close-master-task-editor-btn" class="modal-close-btn">&times;</button></div><div class="space-y-4"><input type="text" id="master-task-title" placeholder="Task Title (e.g., Practice Song A)" class="modal-input w-full"><div><label class="block text-sm font-medium">People In Charge (PICs)</label><div id="master-task-pics" class="space-y-1 mt-1 max-h-32 overflow-y-auto border p-2 rounded-md"></div></div><div><label class="block text-sm font-medium">Required Roles (Tags)</label><div id="master-task-tags" class="space-y-1 mt-1"></div></div></div><div class="mt-6"><button id="save-master-task-btn" class="btn btn-primary">Save Task</button></div></div></div>
+    <div id="task-suggestion-modal" class="modal-backdrop hidden"><div class="modal-content max-w-2xl"><div class="modal-header"><h3 class="modal-title">Task Scheduling Suggestions</h3><button id="close-task-suggestion-btn" class="modal-close-btn">&times;</button></div><div class="flex items-center space-x-2 mb-4"><label for="task-suggestion-select" class="font-medium">Select Task:</label><select id="task-suggestion-select" class="modal-select flex-grow"></select></div><div id="task-suggestion-results" class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar"></div></div></div>
+    <div id="cell-editor-modal" class="modal-backdrop hidden"><div class="modal-content max-w-sm"><div class="modal-header"><h3 class="modal-title">Edit Notes & Image</h3><button id="close-cell-editor-btn" class="modal-close-btn">&times;</button></div><div class="space-y-4"><div><label for="cell-text-input" class="block text-sm font-medium">Notes</label><textarea id="cell-text-input" rows="3" class="modal-input"></textarea></div><div><label for="cell-image-input" class="block text-sm font-medium">Image URL</label><input type="url" id="cell-image-input" placeholder="https://example.com/image.png" class="modal-input"></div></div><div class="mt-6"><button id="save-cell-btn" class="btn btn-primary">Save</button></div></div></div>
     
     <script src="app.js" defer></script>
 </body>
